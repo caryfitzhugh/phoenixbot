@@ -1,4 +1,4 @@
-(defproject phoenixbot "1.0.22-SNAPSHOT"
+(defproject phoenixbot "1.0.22"
   :description "CN-ATG Workflow tools"
   :url "http://github.com/Ziplist/phoenixbot"
   :min-lein-version "2.0.0"
