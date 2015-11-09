@@ -74,7 +74,7 @@
   (doseq [story-id pivotal-stories]
     (add-labels story-id labels)))
 
-(defn handle-story-change
+(defn handle-story-change-event
   [event]
   (println "Story change event: " (pr-str event))
     {:status "ok"}
@@ -83,5 +83,5 @@
 (deflambdafn phoenixbot.pivotal.OnStoryChange
     [in out ctx]
       (let [event (json/read (io/reader in))
-                    res (handle-event event)]
+                    res (handle-story-change-event event)]
             (json/write res (io/writer out))))
