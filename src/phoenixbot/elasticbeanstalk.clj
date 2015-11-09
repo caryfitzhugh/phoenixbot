@@ -78,36 +78,39 @@
 
 (defn handle-new-deployment
   [message]
-  (if message
-    (let [new-deploy  (re-find #"(?ms)New application version was deployed" message)
-          application (get (re-find #"(?ms)Application: ([a-zA-Z0-9-]+)" message) 1)
-          environment (get (re-find #"(?ms)Environment: ([a-zA-Z0-9-]+)" message) 1)
-         ]
-      (println "New deployment: " new-deploy " App: " application "Env: " environment)
-      (if (and new-deploy environment application)
-        (if-let [ application-version (get-current-application-version application environment)]
-          (let [ release-version (get (re-matches #"(\d+\.\d+\.\d+)-(\d+)" application-version) 1)
-                 commits-in-this-release (get-commits-in-this-release application release-version)
-                 pivotal-stories (set (filter identity (flatten (map (fn [commit] (map  (fn [res] (get res 3)) ;;  Pull the issue # directly
-                                                                          (re-seq #"\[((Fixes|Delivers)\w*)?#([0-9]+)\]" (:message (:commit commit)))
-                                                                         )) commits-in-this-release))))
-                 labels-to-apply (get config/labels environment)
-                ]
-            (println "Application version: " application-version)
-            (println "Commits in this release " (count commits-in-this-release))
-            (println "Pivotal-stories in this release:" pivotal-stories)
-            (println "Labels to apply: " labels-to-apply)
+  (let [new-deploy  (re-find #"(?ms)New application version was deployed" message)
+        application (get (re-find #"(?ms)Application: ([a-zA-Z0-9-]+)" message) 1)
+        environment (get (re-find #"(?ms)Environment: ([a-zA-Z0-9-]+)" message) 1)
+       ]
+    (println "New deployment: " new-deploy " App: " application "Env: " environment)
 
-            ;; label in github (on-prod, etc)
-            (pivotal/apply-label-to-stories pivotal-stories labels-to-apply)
-            (pivotal/deliver-stories pivotal-stories)
-            (pivotal/comment-on-stories pivotal-stories (str "Deployed this story to " environment " inside " release-version))
+    (if (and new-deploy environment application)
+      (if-let [ application-version (get-current-application-version application environment)]
+        (let [ release-version (get (re-matches #"(\d+\.\d+\.\d+)-(\d+)" application-version) 1)
+               commits-in-this-release (get-commits-in-this-release application release-version)
+               pivotal-stories (set (filter identity (flatten (map (fn [commit] (map  (fn [res] (get res 3)) ;;  Pull the issue # directly
+                                                                        (re-seq #"\[((Fixes|Delivers)\w*)?#([0-9]+)\]" (:message (:commit commit)))
+                                                                       )) commits-in-this-release))))
+               labels-to-apply (get config/labels environment)
+              ]
+          (println "Application version: " application-version)
+          (println "Commits in this release " (count commits-in-this-release))
+          (println "Pivotal-stories in this release:" pivotal-stories)
+          (println "Labels to apply: " labels-to-apply)
 
-            ;; Comment in hipchat
-            (hipchat/report-deployment application environment application-version pivotal-stories)
+          ;; label in github (on-prod, etc)
+          (pivotal/apply-label-to-stories pivotal-stories labels-to-apply)
+          (pivotal/deliver-stories pivotal-stories)
+          (pivotal/comment-on-stories pivotal-stories (str "Deployed this story to " environment " inside " release-version))
 
-
-            true))))))
+          ;; Comment in hipchat
+          (hipchat/report-deployment application environment application-version pivotal-stories)
+          true)
+        (println "Could not find app version")
+        )
+      (println "Could not find new-deploy, env, application"))
+  )
+)
 
 (defn ignore-message
   [message]
@@ -120,9 +123,7 @@
   (println "Labels: " (pr-str config/labels))
   (println "")
   (if-let [message (get-in event ["Records" 0 "Sns" "Message"])]
-      (if (handle-new-deployment message)
-        {:status "ok"}
-        (ignore-message message))))
+    (handle-new-deployment message)))
 
 (deflambdafn phoenixbot.elasticbeanstalk.OnEventHandler
     [in out ctx]
