@@ -111,14 +111,17 @@
   (println "Ignoring message... " message))
 
 (defn handle-event
-    [event]
-      (if-let [message (get-in event ["Records" 0 "Sns" "Message"])]
-          (or
-            (handle-new-deployment message)
-            ;; ....
-            (ignore-message message)
-            ))
-        {:status "ok"})
+  [event]
+  (println "Processing: "  (pr-str event))
+  (println "")
+  (println "")
+  (if-let [message (get-in event ["Records" 0 "Sns" "Message"])]
+      (or
+        (handle-new-deployment message)
+        ;; ....
+        (ignore-message message)
+        ))
+    {:status "ok"})
 
 (deflambdafn phoenixbot.elasticbeanstalk.OnEventHandler
     [in out ctx]
