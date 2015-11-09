@@ -90,7 +90,7 @@
                  pivotal-stories (set (filter identity (flatten (map (fn [commit] (map  (fn [res] (get res 3)) ;;  Pull the issue # directly
                                                                           (re-seq #"\[((Fixes|Delivers)\w*)?#([0-9]+)\]" (:message (:commit commit)))
                                                                          )) commits-in-this-release))))
-                 labels-to-apply (get-in config/labels [application environment])
+                 labels-to-apply (get config/labels environment)
                 ]
             (println "Application version: " application-version)
             (println "Commits in this release " (count commits-in-this-release))
