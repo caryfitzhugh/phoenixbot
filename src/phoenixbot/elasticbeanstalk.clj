@@ -80,31 +80,30 @@
         environment (get (re-find #"(?ms)Environment: ([a-zA-Z0-9-]+)" message) 1)
        ]
     (if (and new-deploy environment application)
-      (let [ application-version (get-current-application-version application environment)
-             release-version (get (re-matches #"(\d+\.\d+\.\d+)-(\d+)" application-version) 1)
-             commits-in-this-release (get-commits-in-this-release application release-version)
-             pivotal-stories (set (filter identity (flatten (map (fn [commit] (map  (fn [res] (get res 3)) ;;  Pull the issue # directly
+      (if-let [ application-version (get-current-application-version application environment)]
+        (let [ release-version (get (re-matches #"(\d+\.\d+\.\d+)-(\d+)" application-version) 1)
+               commits-in-this-release (get-commits-in-this-release application release-version)
+               pivotal-stories (set (filter identity (flatten (map (fn [commit] (map  (fn [res] (get res 3)) ;;  Pull the issue # directly
                                                                         (re-seq #"\[((Fixes|Delivers)\w*)?#([0-9]+)\]" (:message (:commit commit)))
                                                                        )) commits-in-this-release))))
-             labels-to-apply (get-in config/labels [application environment])
-            ]
-        (println "Application version: " application-version)
-        (println "Commits in this release " (count commits-in-this-release))
-        (println "Pivotal-stories in this release:" pivotal-stories)
-        (println "Labels to apply: " labels-to-apply)
+               labels-to-apply (get-in config/labels [application environment])
+              ]
+          (println "Application version: " application-version)
+          (println "Commits in this release " (count commits-in-this-release))
+          (println "Pivotal-stories in this release:" pivotal-stories)
+          (println "Labels to apply: " labels-to-apply)
 
-        (pivotal/apply-label-to-stories pivotal-stories labels-to-apply)
-        (pivotal/deliver-stories pivotal-stories)
-        (pivotal/comment-on-stories pivotal-stories (str "Deployed this story to " environment " inside " release-version))
+          (pivotal/apply-label-to-stories pivotal-stories labels-to-apply)
+          (pivotal/deliver-stories pivotal-stories)
+          (pivotal/comment-on-stories pivotal-stories (str "Deployed this story to " environment " inside " release-version))
 
-        ;; Comment in hipchat
-        (hc/report-deployment application environment application-version pivotal-stories)
+          ;; Comment in hipchat
+          (hc/report-deployment application environment application-version pivotal-stories)
 
-        ;; label in github (on-prod, etc)
+          ;; label in github (on-prod, etc)
 
 
-        true)
-      false)))
+          true)))))
 
 (defn ignore-message
   [message]
