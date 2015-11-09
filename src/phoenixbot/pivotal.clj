@@ -3,6 +3,7 @@
     [uswitch.lambada.core :refer [deflambdafn]]
     [phoenixbot.config :as config]
     [clojure.walk]
+    [clojure.java.io :as io]
     [clojure.data.json :as json]
     [clj-http.client :as client]
     ))
