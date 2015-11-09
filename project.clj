@@ -37,5 +37,6 @@
   :plugins [
             [lein-environ "1.0.0"]
             [s3-wagon-private "1.1.2" :exclusions [commons-codec commons-logging]]
+            [lein-project-version "0.1.0"]
           ]
   )
