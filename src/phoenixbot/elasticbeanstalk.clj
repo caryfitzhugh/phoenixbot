@@ -61,14 +61,17 @@
         {org-name :org
          repo-name :repo
          branch-name :branch :as repo-map}  (get config/application-repository-map application)]
+
     (if repo-map
       (let [
              repo (repos/specific-repo org-name repo-name config/github-auth)
              commits (repos/commits org-name repo-name (merge {:sha branch-name :per-page 100} config/github-auth))
              ;; Now we see which commits in the last 100 are releases (based on their commit messages "Version #.#.#"
              release-commit-indexes (keep-indexed #(if (re-matches #"Version (\d+\.\d+\.\d+)" (:message (:commit %2))) %1 nil) commits)
+
              ;; Now find the currently deployed commit's index
-             deployed-commit-index (first (keep-indexed (fn [index commit] (if (re-matches (re-pattern (str "Version " release-version)) (:message (:commit commit))) index nil)) commits))
+             deployed-commit-index (or (first (keep-indexed (fn [index commit] (if (re-matches (re-pattern (str "Version " release-version)) (:message (:commit commit))) index nil)) commits))
+                                       0)
              ;; Find the next release's index (just the next higher index than the deployed one)
              next-commit-index (some (fn [index] (when (> index deployed-commit-index) index)) release-commit-indexes)
              ;; Now we have all the commits in this release!
