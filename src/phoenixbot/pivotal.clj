@@ -1,5 +1,6 @@
 (ns phoenixbot.pivotal
   (:require
+    [uswitch.lambada.core :refer [deflambdafn]]
     [phoenixbot.config :as config]
     [clojure.walk]
     [clojure.data.json :as json]
@@ -71,3 +72,15 @@
   (println "Labelling stories: " pivotal-stories labels)
   (doseq [story-id pivotal-stories]
     (add-labels story-id labels)))
+
+(defn handle-story-change
+  [event]
+  (println "Story change event: " (pr-str event))
+    {:status "ok"}
+  )
+
+(deflambdafn phoenixbot.pivotal.OnStoryChange
+    [in out ctx]
+      (let [event (json/read (io/reader in))
+                    res (handle-event event)]
+            (json/write res (io/writer out))))
