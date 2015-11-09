@@ -4,7 +4,7 @@
 
 (def github-auth
   ;; This belongs to zipbot.
-  (env :oauth-token))
+  {:oauth-token (env :github-oauth-token)})
 
 (def pivotal-tracker-token (env :pivotal-tracker-token))
 (def hipchat-token (env :hipchat-token))

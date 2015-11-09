@@ -4,6 +4,7 @@
             [phoenixbot.pivotal :as pivotal]
             ))
 (comment
+  (report-deployment "sindicapi-publish" "sindicati-publish-stag" "v1.2.3" [103936498])
   )
 
 (defn report-deployment-msg

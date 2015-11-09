@@ -4,12 +4,13 @@
             [amazonica.aws.elasticbeanstalk :as eb]
             [clojure.java.io :as io]
             [phoenixbot.config :as config]
-            [phoenixbot.hipchat :as hc]
+            [phoenixbot.hipchat :as hipchat]
             [tentacles.repos :as repos]
             [phoenixbot.pivotal :as pivotal]
             ))
 
 (comment
+  (def event {"Records" [{"EventSource" "aws:sns", "EventVersion" "1.0", "EventSubscriptionArn" "arn:aws:sns:us-east-1:774902671593:phoenixbot-elastic-beanstalk:2417f25a-0dc3-4eed-b4bf-e6c00662eb1c", "Sns" {"SigningCertUrl" "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-bb750dd426d95ee9390147a5624348ee.pem", "UnsubscribeUrl" "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:774902671593:phoenixbot-elastic-beanstalk:2417f25a-0dc3-4eed-b4bf-e6c00662eb1c", "MessageId" "52034243-b522-5108-af81-0cf9615e3c73", "Type" "Notification", "MessageAttributes" {}, "Signature" "dns9n8KsyRoVAiOxcRf4pUKzN1CLpbUyNsiPUz6hhwBYFw9/8dTBf02JjLQf+p0zkUQ2bkhF8/hgvzvnHliN6Rz9Z2IoRtmncgvS1dwNYLFKsvVtm4S5/68ynQ3IQ22ovINkJrgw7lT5l3KAy9N2dsMPOkXhCKfI+eUMgLkrEXqzaUtnMGYHbb0yh1w6tet9A7Fb5VNQbpRmFq1cW9PkkP0SvRoP6GhG07asyV26ixDa2Bue1TzyApNAJMi5t7xPHukTad+ckGf6IeLnMnu2MGZSdp30Qj2c0E+zj9KjAXG+QXC2RHk4jdbOycdRaGYno/OsX+RnxRzHpB8c/iU/Jg==", "Subject" "AWS Elastic Beanstalk Notification - New application version was deployed to running EC2 instances", "Message" "Timestamp: Mon Nov 09 17:04:49 UTC 2015\nMessage: New application version was deployed to running EC2 instances.\n\nEnvironment: sindicati-p-stag\nApplication: sindicati-publish\n\nEnvironment URL: http://null\nRequestId: eb29929e-8703-11e5-8498-037d9460e29b\nNotificationProcessId: 147ed550-4c5c-4d61-80a4-30858c236c8a", "TopicArn" "arn:aws:sns:us-east-1:774902671593:phoenixbot-elastic-beanstalk", "Timestamp" "2015-11-09T17:05:00.766Z", "SignatureVersion" "1"}}]} )
   (def event {"Records" [
                    {"EventSource" "aws:sns", "EventVersion" "1.0", "EventSubscriptionArn" "arn:aws:sns:us-east-1:774902671593:phoenixbot-elastic-beanstalk:2417f25a-0dc3-4eed-b4bf-e6c00662eb1c",
                     "Sns" {"SigningCertUrl" "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-bb750dd426d95ee9390147a5624348ee.pem",
@@ -34,8 +35,8 @@
                :comments_url "https://api.github.com/repos/Ziplist/sindicati-publish/commits/de71be3bd5d8ce1591ecdb2fd252d7874b11c34a/comments",
                })
 
-  (def application-version "1.0.22-20151105111006")
   (handle-event event)
+  (def application-version "1.0.22-20151105111006")
   (handle-event {"Records" [ {"Sns" {"Message" "FOO"}}]})
   (get-current-application-version application environment)
   )
@@ -60,7 +61,8 @@
          repo-name :repo
          branch-name :branch :as repo-map}  (get config/application-repository-map application)]
     (if repo-map
-      (let [ repo (repos/specific-repo org-name repo-name config/github-auth)
+      (let [
+             repo (repos/specific-repo org-name repo-name config/github-auth)
              commits (repos/commits org-name repo-name (merge {:sha branch-name :per-page 100} config/github-auth))
              ;; Now we see which commits in the last 100 are releases (based on their commit messages "Version #.#.#"
              release-commit-indexes (keep-indexed #(if (re-matches #"Version (\d+\.\d+\.\d+)" (:message (:commit %2))) %1 nil) commits)
@@ -75,39 +77,41 @@
 
 (defn handle-new-deployment
   [message]
-  (let [new-deploy  (re-find #"(?ms)New application version was deployed" message)
-        application (get (re-find #"(?ms)Application: ([a-zA-Z0-9-]+)" message) 1)
-        environment (get (re-find #"(?ms)Environment: ([a-zA-Z0-9-]+)" message) 1)
-       ]
-    (if (and new-deploy environment application)
-      (if-let [ application-version (get-current-application-version application environment)]
-        (let [ release-version (get (re-matches #"(\d+\.\d+\.\d+)-(\d+)" application-version) 1)
-               commits-in-this-release (get-commits-in-this-release application release-version)
-               pivotal-stories (set (filter identity (flatten (map (fn [commit] (map  (fn [res] (get res 3)) ;;  Pull the issue # directly
-                                                                        (re-seq #"\[((Fixes|Delivers)\w*)?#([0-9]+)\]" (:message (:commit commit)))
-                                                                       )) commits-in-this-release))))
-               labels-to-apply (get-in config/labels [application environment])
-              ]
-          (println "Application version: " application-version)
-          (println "Commits in this release " (count commits-in-this-release))
-          (println "Pivotal-stories in this release:" pivotal-stories)
-          (println "Labels to apply: " labels-to-apply)
+  (if message
+    (let [new-deploy  (re-find #"(?ms)New application version was deployed" message)
+          application (get (re-find #"(?ms)Application: ([a-zA-Z0-9-]+)" message) 1)
+          environment (get (re-find #"(?ms)Environment: ([a-zA-Z0-9-]+)" message) 1)
+         ]
+      (println "New deployment: " new-deploy " App: " application "Env: " environment)
+      (if (and new-deploy environment application)
+        (if-let [ application-version (get-current-application-version application environment)]
+          (let [ release-version (get (re-matches #"(\d+\.\d+\.\d+)-(\d+)" application-version) 1)
+                 commits-in-this-release (get-commits-in-this-release application release-version)
+                 pivotal-stories (set (filter identity (flatten (map (fn [commit] (map  (fn [res] (get res 3)) ;;  Pull the issue # directly
+                                                                          (re-seq #"\[((Fixes|Delivers)\w*)?#([0-9]+)\]" (:message (:commit commit)))
+                                                                         )) commits-in-this-release))))
+                 labels-to-apply (get-in config/labels [application environment])
+                ]
+            (println "Application version: " application-version)
+            (println "Commits in this release " (count commits-in-this-release))
+            (println "Pivotal-stories in this release:" pivotal-stories)
+            (println "Labels to apply: " labels-to-apply)
 
-          (pivotal/apply-label-to-stories pivotal-stories labels-to-apply)
-          (pivotal/deliver-stories pivotal-stories)
-          (pivotal/comment-on-stories pivotal-stories (str "Deployed this story to " environment " inside " release-version))
+            ;; label in github (on-prod, etc)
+            (pivotal/apply-label-to-stories pivotal-stories labels-to-apply)
+            (pivotal/deliver-stories pivotal-stories)
+            (pivotal/comment-on-stories pivotal-stories (str "Deployed this story to " environment " inside " release-version))
 
-          ;; Comment in hipchat
-          (hc/report-deployment application environment application-version pivotal-stories)
-
-          ;; label in github (on-prod, etc)
+            ;; Comment in hipchat
+            (hipchat/report-deployment application environment application-version pivotal-stories)
 
 
-          true)))))
+            true))))))
 
 (defn ignore-message
   [message]
-  (println "Ignoring message... " message))
+  (println "Ignoring message... " message)
+  {:status "ok"})
 
 (defn handle-event
   [event]
@@ -115,12 +119,9 @@
   (println "")
   (println "")
   (if-let [message (get-in event ["Records" 0 "Sns" "Message"])]
-      (or
-        (handle-new-deployment message)
-        ;; ....
-        (ignore-message message)
-        ))
-    {:status "ok"})
+      (if (handle-new-deployment message)
+        {:status "ok"}
+        (ignore-message message))))
 
 (deflambdafn phoenixbot.elasticbeanstalk.OnEventHandler
     [in out ctx]
