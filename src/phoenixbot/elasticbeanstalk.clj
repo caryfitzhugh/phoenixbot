@@ -47,11 +47,8 @@
 ;;
 (defn get-current-application-version
   [application environment]
-  (println "Describing environments...")
-
   (let [environments (:environments (eb/describe-environments :application-name application ))
         environment (first (filter (fn [env] (= environment (:environment-name env))) environments))]
-    (println "Loaded environments")
     (:version-label environment)))
 
 (defn get-commits-in-this-release
@@ -71,10 +68,11 @@
              commits (repos/commits org-name repo-name (merge {:sha branch-name :per-page 100} config/github-auth))
              ;; Now we see which commits in the last 100 are releases (based on their commit messages "Version #.#.#"
              release-commit-indexes (keep-indexed #(if (re-matches #"Version (\d+\.\d+\.\d+)" (:message (:commit %2))) %1 nil) commits)
-
+             v (println "Commits: " (pr-str commits))
+             v (println "Rel: Indexes: " (pr-str release-commit-indexes))
              ;; Now find the currently deployed commit's index
              deployed-commit-index (or (first (keep-indexed (fn [index commit] (if (re-matches (re-pattern (str "Version " release-version)) (:message (:commit commit))) index nil)) commits))
-                                       0)
+                                       -1)
              ;; Find the next release's index (just the next higher index than the deployed one)
              next-commit-index (some (fn [index] (when (> index deployed-commit-index) index)) release-commit-indexes)
              ;; Now we have all the commits in this release!
