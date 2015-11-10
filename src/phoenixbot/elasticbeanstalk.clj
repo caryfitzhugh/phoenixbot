@@ -40,6 +40,7 @@
   (def application-version "1.0.22-20151105111006")
   (handle-event {"Records" [ {"Sns" {"Message" "FOO"}}]})
   (get-current-application-version application environment)
+  (handle-new-deployment "auth-service" "auth-s-stag")
   )
 
 ;; If there is a new deployment.
@@ -81,16 +82,7 @@
        [])))
 
 (defn handle-new-deployment
-  [message]
-  (let [new-deploy  (re-find #"(?ms)New application version was deployed" message)
-        application (get (re-find #"(?ms)Application: ([a-zA-Z0-9-]+)" message) 1)
-        environment (get (re-find #"(?ms)Environment: ([a-zA-Z0-9-]+)" message) 1)
-       ]
-    (println "New deployment: " new-deploy)
-    (println "App: " application )
-    (println "Env: " environment)
-
-    (if (and new-deploy environment application)
+  [application environment]
       (if-let [ application-version (get-current-application-version application environment)]
         (let [ release-version (get (re-matches #"(\d+\.\d+\.\d+)-(\d+)" application-version) 1)
                commits-in-this-release (get-commits-in-this-release application release-version)
@@ -114,9 +106,21 @@
           true)
         (println "Could not find app version")
         )
-      (println "Could not find new-deploy, env, application"))
-  )
 )
+
+(defn parse-new-deployment
+  [message]
+  (let [new-deploy  (re-find #"(?ms)New application version was deployed" message)
+        application (get (re-find #"(?ms)Application: ([a-zA-Z0-9-]+)" message) 1)
+        environment (get (re-find #"(?ms)Environment: ([a-zA-Z0-9-]+)" message) 1)
+       ]
+    (println "New deployment: " new-deploy)
+    (println "App: " application )
+    (println "Env: " environment)
+
+    (if (and new-deploy environment application)
+      (handle-new-deployment environment application)
+      (println "Not new deployment message..."))))
 
 (defn ignore-message
   [message]
@@ -128,7 +132,7 @@
   (println "Processing: "  (pr-str event))
   (println "")
   (if-let [message (get-in event ["Records" 0 "Sns" "Message"])]
-    (handle-new-deployment message)))
+    (parse-new-deployment message)))
 
 (deflambdafn phoenixbot.elasticbeanstalk.OnEventHandler
     [in out ctx]
