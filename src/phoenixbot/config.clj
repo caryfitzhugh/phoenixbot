@@ -32,22 +32,13 @@
     })
 
 (def application-repository-map
-  {"sindicati-publish" {:org "Ziplist"
-                        :repo "sindicati-publish"
-                        :branch "master"}
-   "sindicati-spugna" {:org "Ziplist"
-                       :repo "sindicati-spugna"
-                       :branch "master"}
-   "auth-service" {:org "Ziplist"
-                   :repo "cnds-auth"
-                   :branch "master"}
-   "butterfly-service" {:org "Ziplist"
-                        :repo "butterfly-service"
-                        :branch "master"}
+  {"sindicati-publish" {:org "Ziplist" :repo "sindicati-publish" :branch "master"}
+   "sindicati-spugna" {:org "Ziplist" :repo "sindicati-spugna" :branch "master"}
+   "auth-service" {:org "Ziplist" :repo "cnds-auth" :branch "master"}
+   "butterfly-service" {:org "Ziplist" :repo "butterfly-service" :branch "master"}
    "dowser-categorizer" {:org "Ziplist" :repo "dowser-categorizer" :branch "master"}
    "dowser-service" {:org "Ziplist" :repo "dowser-service" :branch "master"}
    "recirculati-service" {:org "Ziplist" :repo "recirculati" :branch "master"}
    "sindicati-service" {:org "Ziplist" :repo "sindicapi" :branch "master"}
    "sindicati-web" {:org "Ziplist" :repo "sindicati-web" :branch "master"}
-
-   })
+  })

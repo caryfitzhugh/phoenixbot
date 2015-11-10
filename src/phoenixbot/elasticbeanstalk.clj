@@ -47,8 +47,11 @@
 ;;
 (defn get-current-application-version
   [application environment]
+  (println "Describing environments...")
+
   (let [environments (:environments (eb/describe-environments :application-name application ))
         environment (first (filter (fn [env] (= environment (:environment-name env))) environments))]
+    (println "Loaded environments")
     (:version-label environment)))
 
 (defn get-commits-in-this-release
@@ -85,7 +88,9 @@
         application (get (re-find #"(?ms)Application: ([a-zA-Z0-9-]+)" message) 1)
         environment (get (re-find #"(?ms)Environment: ([a-zA-Z0-9-]+)" message) 1)
        ]
-    (println "New deployment: " new-deploy " App: " application "Env: " environment)
+    (println "New deployment: " new-deploy)
+    (println "App: " application )
+    (println "Env: " environment)
 
     (if (and new-deploy environment application)
       (if-let [ application-version (get-current-application-version application environment)]
@@ -123,7 +128,6 @@
 (defn handle-event
   [event]
   (println "Processing: "  (pr-str event))
-  (println "Labels: " (pr-str config/labels))
   (println "")
   (if-let [message (get-in event ["Records" 0 "Sns" "Message"])]
     (handle-new-deployment message)))
