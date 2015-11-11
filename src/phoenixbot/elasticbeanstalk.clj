@@ -41,6 +41,7 @@
   (handle-event {"Records" [ {"Sns" {"Message" "FOO"}}]})
   (get-current-application-version application environment)
   (handle-new-deployment "auth-service" "auth-s-stag")
+  (eb/describe-environments)
   )
 
 ;; If there is a new deployment.
@@ -48,9 +49,10 @@
 ;;
 (defn get-current-application-version
   [application environment]
-  (let [environments (:environments (eb/describe-environments :application-name application ))
+  (let [environments (:environments (eb/describe-environments))
         environment (first (filter (fn [env] (= environment (:environment-name env))) environments))]
     (println "Describe: " (eb/describe-environments))
+    (println "Names: " (map :environment-name (eb/describe-environments)))
     (println "lookup up application: " application)
     (println "Looking at environments: " environments)
     (println "Found environment: " environment)
