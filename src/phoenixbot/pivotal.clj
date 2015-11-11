@@ -5,7 +5,7 @@
     [clojure.walk]
     [clojure.java.io :as io]
     [clojure.data.json :as json]
-    [clj-http.client :as client]
+    [clj-http.lite.client :as client]
     ))
 (comment
  (get-story 107407794)
@@ -22,12 +22,12 @@
     (json/read-str
       (:body
         (clojure.walk/keywordize-keys
-          (client/get  (url "/stories/" story-id ) {:headers {"X-TrackerToken" config/pivotal-tracker-token}}))))))
+          (client/get
+            (url "/stories/" story-id ) {:headers {"X-TrackerToken" config/pivotal-tracker-token}}))))))
 
 (defn add-labels
   [story-id labels]
   (let [story (get-story story-id)
-        ;;[{:id 12974898, :project_id 1243524, :kind label, :name stag-publish, :created_at 2015-10-06T20:27:38Z, :updated_at 2015-10-06T20:27:38Z}]
         existing-labels (set (map :name (:labels story)))
         new-labels (into existing-labels labels)
         json-payload (json/write-str {"labels" (map #(hash-map :name %1) new-labels)})

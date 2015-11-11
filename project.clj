@@ -8,15 +8,10 @@
                  [environ               "1.0.0"]
                  [uswitch/lambada "0.1.0"]
                  [org.clojure/data.json "0.2.6"]
-                 [com.fasterxml.jackson.core/jackson-core "2.6.3"]
+                ; [com.fasterxml.jackson.core/jackson-core "2.6.3"]
                  [amazonica "0.3.39" ]
-                 [clj-http "2.0.0"]
-                 [hipchat-clj "0.1.3"]
-                 [cheshire "5.4.0"]
-                 [tentacles "0.3.0" :exclusions [org.clojure/tools.reader]]
+                 [clj-http-lite "0.3.0"]
                 ]
-
-  :repositories [["cnds" {:url "s3p://clojars.cnds.io/cnds/releases" :sign-releases false}]]
 
   :target-path "target/"
 
@@ -33,10 +28,8 @@
                   ]
 
   :profiles {:uberjar {:aot :all}}
-
   :plugins [
             [lein-environ "1.0.0"]
-            [s3-wagon-private "1.1.2" :exclusions [commons-codec commons-logging]]
-            [lein-project-version "0.1.0"]
-          ]
+            ]
+  :java-source-paths ["src/java"]
   )

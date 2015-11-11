@@ -1,11 +1,15 @@
 (ns phoenixbot.hipchat
-  (:require [hipchat.core :as hc]
-            [phoenixbot.config :as config]
-            [phoenixbot.pivotal :as pivotal]
-            ))
+  (:require
+    [clojure.data.json :as json]
+    [phoenixbot.config :as config]
+    [phoenixbot.pivotal :as pivotal]
+    [clj-http.lite.client :as client]
+   ))
+
 (comment
   (report-deployment "sindicapi-publish" "sindicati-publish-stag" "v1.2.3" [103936498])
   )
+(def hipchat-host "https://api.hipchat.com")
 
 (defn report-deployment-msg
   [app env ver stories]
@@ -21,8 +25,11 @@
                              (:name story) "</a></li>"))) stories)) "</ul>"))))
 (defn report-deployment
   [application environment application-version pivotal-stories]
-  (hc/set-auth-token! config/hipchat-token)
-  (hc/send-message-to-room config/hipchat-room-id (report-deployment-msg application environment application-version pivotal-stories)
-                                   :message_format "html"
-                                   :color "red"
-                                   :nofity true))
+  (let [ options {:headers {"Authorization" (str "Bearer " config/hipchat-token)
+                           }
+                 :content-type :json
+                 :body (json/write-str {:message_format "html"
+                                        :message (report-deployment-msg application environment application-version pivotal-stories)
+                                        })
+                 }]
+    (client/post (str hipchat-host "/v2/room/" config/hipchat-room-id "/notification") options)))

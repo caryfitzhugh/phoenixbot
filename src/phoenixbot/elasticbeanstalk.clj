@@ -4,8 +4,8 @@
             [amazonica.aws.elasticbeanstalk :as eb]
             [clojure.java.io :as io]
             [phoenixbot.config :as config]
+            [phoenixbot.github :as github]
             [phoenixbot.hipchat :as hipchat]
-            [tentacles.repos :as repos]
             [phoenixbot.pivotal :as pivotal]
             ))
 
@@ -51,49 +51,13 @@
   [application environment-name]
   (let [environments (:environments (eb/describe-environments))
         environment (first (filter (fn [env] (= environment-name (:environment-name env))) environments))]
-
-    (println "Describe: " (eb/describe-environments))
-    (println "Names: " (map :environment-name (:environments (eb/describe-environments))))
-    (println "Foudn name: " (first (filter (fn [nm] (= environment-name nm)) (map :environment-name (:environments (eb/describe-environments))))))
-    (println "lookup up application: " application)
-    (println "Looking at environments: " (pr-str environment-name) (pr-str environments))
-    (println "Found environment: " environment)
     (:version-label environment)))
-
-(defn get-commits-in-this-release
-  "It uses knowledge of the release string in lein release, to look for the version that is currently running.
-  It then walks down the history till it finds the next release commit message.
-  The commits between those two are the ones that are released in this release."
-
-  [application release-version]
-  (let [
-        {org-name :org
-         repo-name :repo
-         branch-name :branch :as repo-map}  (get config/application-repository-map application)]
-
-    (if repo-map
-      (let [
-             repo (repos/specific-repo org-name repo-name config/github-auth)
-             commits (repos/commits org-name repo-name (merge {:sha branch-name :per-page 100} config/github-auth))
-             ;; Now we see which commits in the last 100 are releases (based on their commit messages "Version #.#.#"
-             release-commit-indexes (keep-indexed #(if (re-matches #"Version (\d+\.\d+\.\d+)" (:message (:commit %2))) %1 nil) commits)
-             v (println "Commits: " (pr-str commits))
-             v (println "Rel: Indexes: " (pr-str release-commit-indexes))
-             ;; Now find the currently deployed commit's index
-             deployed-commit-index (or (first (keep-indexed (fn [index commit] (if (re-matches (re-pattern (str "Version " release-version)) (:message (:commit commit))) index nil)) commits))
-                                       -1)
-             ;; Find the next release's index (just the next higher index than the deployed one)
-             next-commit-index (some (fn [index] (when (> index deployed-commit-index) index)) release-commit-indexes)
-             ;; Now we have all the commits in this release!
-            ]
-        (subvec (vec commits) deployed-commit-index next-commit-index))
-       [])))
 
 (defn handle-new-deployment
   [application environment]
       (if-let [ application-version (get-current-application-version application environment)]
         (let [ release-version (get (re-matches #"(\d+\.\d+\.\d+)-(\d+)" application-version) 1)
-               commits-in-this-release (get-commits-in-this-release application release-version)
+               commits-in-this-release (github/get-commits-in-this-release application release-version)
                pivotal-stories (set (filter identity (flatten (map (fn [commit] (map  (fn [res] (get res 3)) ;;  Pull the issue # directly
                                                                         (re-seq #"\[((Fixes|Delivers)\w*)?#([0-9]+)\]" (:message (:commit commit)))
                                                                        )) commits-in-this-release))))
@@ -104,7 +68,7 @@
           (println "Pivotal-stories in this release:" pivotal-stories)
           (println "Labels to apply: " labels-to-apply)
 
-          ;; label in github (on-prod, etc)
+          ;; label in pivotal (on-prod, etc)
           (pivotal/apply-label-to-stories pivotal-stories labels-to-apply)
           (pivotal/deliver-stories pivotal-stories)
           (pivotal/comment-on-stories pivotal-stories (str "Deployed this story to " environment " inside " release-version))
@@ -127,8 +91,8 @@
     (println "Env: " environment)
 
     (if (and new-deploy environment application)
-      (handle-new-deployment environment application)
-      (println "Not new deployment message..."))))
+        (handle-new-deployment application environment)
+        (println "Not new deployment message..."))))
 
 (defn ignore-message
   [message]
