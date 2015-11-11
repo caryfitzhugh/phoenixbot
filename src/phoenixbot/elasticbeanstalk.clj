@@ -50,6 +50,8 @@
   [application environment]
   (let [environments (:environments (eb/describe-environments :application-name application ))
         environment (first (filter (fn [env] (= environment (:environment-name env))) environments))]
+    (println "Looking at environments: " environments)
+    (println "Found environment: " environment)
     (:version-label environment)))
 
 (defn get-commits-in-this-release
