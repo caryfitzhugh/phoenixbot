@@ -8,7 +8,6 @@
                  [environ               "1.0.0"]
                  [uswitch/lambada "0.1.0"]
                  [org.clojure/data.json "0.2.6"]
-                ; [com.fasterxml.jackson.core/jackson-core "2.6.3"]
                  [amazonica "0.3.39" ]
                  [clj-http-lite "0.3.0"]
                 ]
@@ -27,9 +26,10 @@
                   ["vcs" "push"]
                   ]
 
-  :profiles {:uberjar {:aot :all}}
+  ;;:profiles {:uberjar {:aot :all}}
+
+  :aot :all
   :plugins [
             [lein-environ "1.0.0"]
             ]
-  :java-source-paths ["src/java"]
   )
