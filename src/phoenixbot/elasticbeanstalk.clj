@@ -48,16 +48,9 @@
 ;;  We need to do a few things
 ;;
 (defn get-current-application-version
-  [application environment]
+  [application environment-name]
   (let [environments (:environments (eb/describe-environments))
-        environment (first (filter (fn [env] (= environment (:environment-name env))) environments))]
-
-    (println "Describe: " (eb/describe-environments))
-    (println "Names: " (map :environment-name (:environments (eb/describe-environments))))
-    (println "Foudn name: " (first (filter (fn [nm] (= environment nm)) (map :environment-name (:environments (eb/describe-environments))))))
-    (println "lookup up application: " application)
-    (println "Looking at environments: " (pr-str environment) (pr-str environments))
-    (println "Found environment: " environment)
+        environment (first (filter (fn [env] (= environment-name (:environment-name env))) environments))]
     (:version-label environment)))
 
 (defn get-commits-in-this-release
