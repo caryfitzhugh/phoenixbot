@@ -51,10 +51,12 @@
   [application environment]
   (let [environments (:environments (eb/describe-environments))
         environment (first (filter (fn [env] (= environment (:environment-name env))) environments))]
+
     (println "Describe: " (eb/describe-environments))
     (println "Names: " (map :environment-name (:environments (eb/describe-environments))))
+    (println "Foudn name: " (first (filter (fn [nm] (= environment nm)) (map :environment-name (:environments (eb/describe-environments))))
     (println "lookup up application: " application)
-    (println "Looking at environments: " (pr-str environments))
+    (println "Looking at environments: " (pr-str environment) (pr-str environments)
     (println "Found environment: " environment)
     (:version-label environment)))
 
