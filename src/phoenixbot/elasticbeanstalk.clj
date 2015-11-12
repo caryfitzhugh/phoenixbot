@@ -103,7 +103,6 @@
   [event]
   (println "Processing: "  (pr-str event))
   (println "")
-  (println "GH:" config/github-auth)
 
   (if-let [message (get-in event ["Records" 0 "Sns" "Message"])]
     (parse-new-deployment message)))

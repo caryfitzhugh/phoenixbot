@@ -26,9 +26,8 @@
                   ["vcs" "push"]
                   ]
 
-  ;;:profiles {:uberjar {:aot :all}}
-
   :aot :all
+
   :plugins [
             [lein-environ "1.0.0"]
             ]
