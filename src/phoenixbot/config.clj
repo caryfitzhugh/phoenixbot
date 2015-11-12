@@ -2,15 +2,15 @@
   (:require [environ.core :refer [env]]))
 
 
-(def github-auth
+(def ^:const github-auth
   ;; This belongs to zipbot.
   (env :github-oauth-token))
 
-(def pivotal-tracker-token (env :pivotal-tracker-token))
-(def hipchat-token (env :hipchat-token))
-(def hipchat-room-id (env :hipchat-room-id))
+(def ^:const pivotal-tracker-token (env :pivotal-tracker-token))
+(def ^:const hipchat-token (env :hipchat-token))
+(def ^:const hipchat-room-id (env :hipchat-room-id))
 
-(def labels
+(def ^:const labels
   {
     "sindicati-p-stag" ["publish-stag"]
     "sindicati-p-prod" ["publish-prod"]
@@ -31,7 +31,7 @@
     "sindicati-w-stag" ["web-stag"]
     })
 
-(def application-repository-map
+(def ^:const application-repository-map
   {"sindicati-publish" {:org "Ziplist" :repo "sindicati-publish" :branch "master"}
    "sindicati-spugna" {:org "Ziplist" :repo "sindicati-spugna" :branch "master"}
    "auth-service" {:org "Ziplist" :repo "cnds-auth" :branch "master"}
