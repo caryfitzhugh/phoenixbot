@@ -103,6 +103,9 @@
   [event]
   (println "Processing: "  (pr-str event))
   (println "")
+  (println "GH:" config/github-auth)
+  (println "PT: " config/pivotal-tracker-token)
+  (println "HC: " config/hipchat-room-id)
 
   (if-let [message (get-in event ["Records" 0 "Sns" "Message"])]
     (parse-new-deployment message)))
