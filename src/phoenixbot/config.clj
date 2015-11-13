@@ -6,6 +6,8 @@
   ;; This belongs to zipbot.
   (env :github-oauth-token))
 
+(def ^:const ddb-environments (env :ddb-environments))
+
 (def ^:const pivotal-tracker-token (env :pivotal-tracker-token))
 (def ^:const hipchat-token (env :hipchat-token))
 (def ^:const hipchat-room-id (env :hipchat-room-id))

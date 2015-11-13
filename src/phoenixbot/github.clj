@@ -40,8 +40,6 @@
              ;; Now we see which commits in the last 100 are releases based on their commit messages "Version #.#.#"
              release-commit-indexes (keep-indexed #(if (re-matches #"Version (\d+\.\d+\.\d+)" (:message (:commit %2))) %1 nil) commits)
              ;; Now find the currently deployed commit's index
-             v (println release-version)
-             v (println "Commits" (:message (:commit (first commits))))
              deployed-commit-index (first (keep-indexed (fn [index commit] (if (re-matches (re-pattern (str "Version " release-version)) (:message (:commit commit))) index nil)) commits))
             ]
         (if deployed-commit-index
