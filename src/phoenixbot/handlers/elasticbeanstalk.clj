@@ -1,14 +1,12 @@
-(ns phoenixbot.elasticbeanstalk
+(ns phoenixbot.handlers.elasticbeanstalk
   (:require [uswitch.lambada.core :refer [deflambdafn]]
             [clojure.data.json :as json]
-            [amazonica.aws.elasticbeanstalk :as eb]
-            [amazonica.aws.dynamodbv2 :as ddb]
-            [clojure.edn :as edn]
             [clojure.java.io :as io]
+            [phoenixbot.aws :as aws]
             [phoenixbot.config :as config]
             [phoenixbot.github :as github]
             [phoenixbot.hipchat :as hipchat]
-            [phoenixbot.pivotal :as pivotal]
+            [phoenixbot.pivotal-tracker :as pivotal]
             ))
 
 (comment
@@ -43,50 +41,25 @@
   (handle-event event)
   (def application-version "1.0.22-20151105111006")
   (handle-event {"Records" [ {"Sns" {"Message" "FOO"}}]})
-  (get-current-application-version application environment)
+  (aws/get-current-application-version application environment)
   (handle-new-deployment "auth-service" "auth-s-stag")
-  (first (:environments (eb/describe-environments)))
 
   (save-previous-deployed-info "test-env" {:version "1.2.1" :ref "ddeddeddefasefasefasefasef4"})
   (get-previous-deployed-info "test-env")
   (get-previous-deployed-info "test-env2")
   )
 
-(defn save-previous-deployed-info
-  [environment-name data]
-  (ddb/put-item  :table-name config/ddb-environments
-              :item
-                (merge data {:environment environment-name})
-              ))
-
-(defn get-previous-deployed-info
-  [environment-name]
-  (let [record (ddb/get-item :table-name config/ddb-environments
-                :key {:environment {:s environment-name}})]
-    (if record
-      (:item record)
-      nil)))
-
-;; If there is a new deployment.
 ;;  We need to do a few things
 ;;
-(defn get-current-application-version
-  [application environment-name]
-  (let [environments (:environments (eb/describe-environments))
-        environment (first (filter (fn [env] (= environment-name (:environment-name env))) environments))]
-    (:version-label environment)))
-
 (defn handle-new-deployment
   [application environment]
-      (if-let [ application-version (get-current-application-version application environment)]
-        (let [ release-version (get (re-matches #"(\d+\.\d+\.\d+)-(\d+)" application-version) 1)
-               commits-in-this-release (github/get-commits-in-this-release application release-version)
-               pivotal-stories (set (filter identity (flatten (map (fn [commit] (map  (fn [res] (get res 4)) ;;  Pull the issue # directly
-                                                                        (re-seq #"\[((Delivers|Fixes)( )+)?#([0-9]+)\]" (clojure.string/join (:message (:commit commit))))
-                                                                       )) commits-in-this-release))))
+      (if-let [ release-version (aws/get-current-application-version application environment)]
+        (let [ commits-in-this-release (github/get-commits-in-this-release application release-version)
+               pivotal-stories (pivotal/pivotal-stories-in-commit-range commits-in-this-release)
                labels-to-apply (get config/labels environment)
               ]
-          (println "Application version: " application-version)
+
+          (println "Release version: " release-version)
           (println "Commits in this release " (count commits-in-this-release)
                    (clojure.string/join ", " (map :sha (map :tree (map :commit commits-in-this-release)))))
           (println "Pivotal-stories in this release:" pivotal-stories)
@@ -98,11 +71,18 @@
           (pivotal/comment-on-stories pivotal-stories (str "Deployed this story to " environment " inside " release-version))
 
           ;; Comment in hipchat
-          (hipchat/report-deployment application environment application-version pivotal-stories)
+          (hipchat/report-deployment application environment release-version pivotal-stories)
+
+          ;; Comment on status btwn the staging deploy and the prod
+          (if (some #(= environment %) (map :stag (vals config/application-repository-map)))
+            (let [commit-diff (github/get-commits-on-staging-not-prod application)
+                  pivotal-task-ids (pivotal/pivotal-stories-in-commit-range commit-diff)
+                  pivotal-stories (map pivotal/get-story pivotal-task-ids)]
+              (hipchat/report-staging-state application pivotal-stories)))
+
           true)
         (println "Could not find app version")
-        )
-)
+        ))
 
 (defn parse-new-deployment
   [message]
@@ -131,7 +111,7 @@
   (if-let [message (get-in event ["Records" 0 "Sns" "Message"])]
     (parse-new-deployment message)))
 
-(deflambdafn phoenixbot.elasticbeanstalk.OnEventHandler
+(deflambdafn phoenixbot.handlers.elasticbeanstalk.OnEventHandler
     [in out ctx]
       (let [event (json/read (io/reader in))
                     res (handle-event event)]

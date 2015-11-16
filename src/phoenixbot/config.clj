@@ -11,7 +11,6 @@
 (def ^:const pivotal-tracker-token (env :pivotal-tracker-token))
 (def ^:const hipchat-token (env :hipchat-token))
 (def ^:const hipchat-room-id (env :hipchat-room-id))
-
 (def ^:const labels
   {
     "sindicati-p-stag" ["publish-stag"]
@@ -33,14 +32,34 @@
     "sindicati-w-stag" ["web-stag"]
     })
 
+(def ^:const environment-labels
+  (apply hash-map
+         (flatten (map (fn [[k v]]
+                           (map #(vector % k) v)) labels))))
+
 (def ^:const application-repository-map
-  {"sindicati-publish" {:org "Ziplist" :repo "sindicati-publish" :branch "master"}
-   "sindicati-spugna" {:org "Ziplist" :repo "sindicati-spugna" :branch "master"}
-   "auth-service" {:org "Ziplist" :repo "cnds-auth" :branch "master"}
-   "butterfly-service" {:org "Ziplist" :repo "butterfly-service" :branch "master"}
-   "dowser-categorizer" {:org "Ziplist" :repo "dowser-categorizer" :branch "master"}
-   "dowser-service" {:org "Ziplist" :repo "dowser-service" :branch "master"}
-   "recirculati-service" {:org "Ziplist" :repo "recirculati" :branch "master"}
-   "sindicati-service" {:org "Ziplist" :repo "sindicapi" :branch "master"}
-   "sindicati-web" {:org "Ziplist" :repo "sindicati-web" :branch "master"}
+  {"sindicati-publish" {:org "Ziplist" :repo "sindicati-publish" :branch "master"
+                        :stag "sindicati-p-stag" :prod "sindicati-p-prod"}
+   "sindicati-spugna" {:org "Ziplist" :repo "sindicati-spugna" :branch "master"
+                        :stag "sindicati-spugna-stag" :prod "sindicati-spugna-prod"}
+   "auth-service" {:org "Ziplist" :repo "cnds-auth" :branch "master"
+                   :stag "auth-s-stag" :prod "auth-s-prod"}
+   "butterfly-service" {:org "Ziplist" :repo "butterfly-service" :branch "master"
+                        :prod "butterfly-s-prod" :stag "no-stag-butterfly-service"}
+   "dowser-categorizer" {:org "Ziplist" :repo "dowser-categorizer" :branch "master"
+                        :stag "dowser-c-stag" :prod "dowser-c-prod" }
+   "dowser-service" {:org "Ziplist" :repo "dowser-service" :branch "master"
+                    :stag "dowser-s-stag" :prod "dowser-s-prod" }
+   "recirculati-service" {:org "Ziplist" :repo "recirculati" :branch "master"
+                         :stag "recirculati-s-stag" :prod "recirculati-s-prod" }
+   "sindicati-service" {:org "Ziplist" :repo "sindicapi" :branch "master"
+                       :stag "sindicati-s-stag" :prod "sindicati-s-prod" }
+   "sindicati-web" {:org "Ziplist" :repo "sindicati-web" :branch "master"
+                    :stag "sindicati-w-stag" :prod "sindicati-w-prod"}
   })
+
+(def ^:const env-application-map
+  (apply hash-map
+         (flatten (map (fn [[k v]]
+                           [(:stag v) k
+                            (:prod v) k]) application-repository-map))))

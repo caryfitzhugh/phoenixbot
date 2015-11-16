@@ -1,81 +1,18 @@
-(ns phoenixbot.pivotal
+(ns phoenixbot.handlers.pivotal
   (:require
     [uswitch.lambada.core :refer [deflambdafn]]
-    [phoenixbot.config :as config]
-    [clojure.walk]
-    [clojure.java.io :as io]
     [clojure.data.json :as json]
-    [clj-http.lite.client :as client]
+    [phoenixbot.config :as config]
+    [clojure.java.io :as io]
+    [phoenixbot.github :as github]
+    [phoenixbot.hipchat :as hipchat]
+    [phoenixbot.pivotal-tracker :as pivotal]
     ))
-(comment
- (get-story 107407794)
- (add-labels 107407794 #{"test-label"})
-  )
 
-(defn- url
-  [& rest]
-  (apply str (concat ["https://www.pivotaltracker.com/services/v5"] rest)))
-
-(defn get-story
-  [story-id]
-  (clojure.walk/keywordize-keys
-    (json/read-str
-      (:body
-        (clojure.walk/keywordize-keys
-          (client/get
-            (url "/stories/" story-id ) {:headers {"X-TrackerToken" config/pivotal-tracker-token}}))))))
-
-(defn add-labels
-  [story-id labels]
-  (let [story (get-story story-id)
-        existing-labels (set (map :name (:labels story)))
-        new-labels (into existing-labels labels)
-        json-payload (json/write-str {"labels" (map #(hash-map :name %1) new-labels)})
-        ]
-    (clojure.walk/keywordize-keys
-      (json/read-str
-        (:body
-          (clojure.walk/keywordize-keys
-            (client/put  (url "/stories/" story-id )
-                        {:headers {"X-TrackerToken" config/pivotal-tracker-token}
-                         :content-type :json
-                         :body json-payload
-                        })))))))
-(defn deliver-story
-  [story-id]
-  (let [ json-payload (json/write-str {"current_state" "delivered"})]
-    (clojure.walk/keywordize-keys
-      (json/read-str
-        (:body
-          (clojure.walk/keywordize-keys
-            (client/put  (url "/stories/" story-id )
-                        {:headers {"X-TrackerToken" config/pivotal-tracker-token}
-                         :content-type :json
-                         :body json-payload
-                        })))))))
-
-(defn deliver-stories
-  [pivotal-stories]
-  (doseq [story-id pivotal-stories]
-    (deliver-story story-id)))
-(defn comment-on-story
-  [story-id comment-text]
-
-  )
-
-(defn comment-on-stories
-  [pivotal-stories comment-text]
-  (doseq [story-id pivotal-stories]
-    (comment-on-story story-id comment-text)))
-
-(defn apply-label-to-stories
-  [pivotal-stories labels]
-  (println "Labelling stories: " pivotal-stories labels)
-  (doseq [story-id pivotal-stories]
-    (add-labels story-id labels)))
 (comment
   (def event {"message" "Jeff Margolis finished this bug", "project" {"kind" "project", "id" 1243524, "name" "CN Digital Solutions"}, "project_version" 8035, "performed_by" {"kind" "person", "id" 453077, "name" "Jeff Margolis", "initials" "JM"}, "changes" [{"kind" "label", "change_type" "update", "id" 11871070, "original_values" {"counts" {"number_of_zero_point_stories_by_state" {"started" 1, "delivered" 0, "accepted" 108, "kind" "counts_by_story_state", "planned" 0, "unscheduled" 2, "unstarted" 2, "rejected" 0, "finished" 1}, "sum_of_story_estimates_by_state" {"started" 3, "delivered" 0, "accepted" 36, "kind" "counts_by_story_state", "planned" 0, "unscheduled" 0, "unstarted" 0, "rejected" 0, "finished" 8}, "number_of_stories_by_state" {"started" 3, "delivered" 0, "accepted" 131, "kind" "counts_by_story_state", "planned" 0, "unscheduled" 2, "unstarted" 2, "rejected" 0, "finished" 2}, "kind" "story_counts"}}, "new_values" {"counts" {"number_of_zero_point_stories_by_state" {"started" 0, "delivered" 0, "accepted" 108, "kind" "counts_by_story_state", "planned" 0, "unscheduled" 2, "unstarted" 2, "rejected" 0, "finished" 2}, "sum_of_story_estimates_by_state" {"started" 3, "delivered" 0, "accepted" 36, "kind" "counts_by_story_state", "planned" 0, "unscheduled" 0, "unstarted" 0, "rejected" 0, "finished" 8}, "number_of_stories_by_state" {"started" 2, "delivered" 0, "accepted" 131, "kind" "counts_by_story_state", "planned" 0, "unscheduled" 2, "unstarted" 2, "rejected" 0, "finished" 3}, "kind" "story_counts"}}, "name" "scraper"} {"kind" "story", "change_type" "update", "id" 107757274, "original_values" {"current_state" "started", "updated_at" 1447105976000}, "new_values" {"current_state" "finished", "updated_at" 1447105979000}, "name" "Bon Appetit scraper - Body text partially scraping", "story_type" "bug"}], "kind" "story_update_activity", "primary_resources" [{"kind" "story", "id" 107757274, "name" "Bon Appetit scraper - Body text partially scraping", "story_type" "bug", "url" "https://www.pivotaltracker.com/story/show/107757274"}], "highlight" "finished", "guid" "1243524_8035", "occurred_at" 1447105979000})
-  (def accepted-chore {"message" "Cary Fitzhugh accepted this chore", "project" {"kind" "project", "id" 1243524, "name" "CN Digital Solutions"}, "project_version" 8140, "performed_by" {"kind" "person", "id" 120053, "name" "Cary Fitzhugh", "initials" "CF"}, "changes" [{"kind" "story", "change_type" "update", "id" 107923330, "original_values" {"current_state" "started", "accepted_at" nil, "updated_at" 1447258611000, "before_id" 98744630, "after_id" 107741682}, "new_values" {"current_state" "accepted", "accepted_at" 1447258614000, "updated_at" 1447258614000, "before_id" 106971928, "after_id" 107920676}, "name" "test ", "story_type" "chore"}], "kind" "story_update_activity", "primary_resources" [{"kind" "story", "id" 107923330, "name" "test ", "story_type" "chore", "url" "https://www.pivotaltracker.com/story/show/107923330"}], "highlight" "accepted", "guid" "1243524_8140", "occurred_at" 1447258614000})
+  (handle-story-change-event {"message" "Cary Fitzhugh accepted this chore", "project" {"kind" "project", "id" 1243524, "name" "CN Digital Solutions"}, "project_version" 8140, "performed_by" {"kind" "person", "id" 120053, "name" "Cary Fitzhugh", "initials" "CF"}, "changes" [{"kind" "story", "change_type" "update", "id" 107923330, "original_values" {"current_state" "started", "accepted_at" nil, "updated_at" 1447258611000, "before_id" 98744630, "after_id" 107741682}, "new_values" {"current_state" "accepted", "accepted_at" 1447258614000, "updated_at" 1447258614000, "before_id" 106971928, "after_id" 107920676}, "name" "test ", "story_type" "chore"}], "kind" "story_update_activity", "primary_resources" [{"kind" "story", "id" 107923330, "name" "test ", "story_type" "chore", "url" "https://www.pivotaltracker.com/story/show/107923330"}], "highlight" "accepted", "guid" "1243524_8140", "occurred_at" 1447258614000})
+
   (def accepted-feature {"message" "Cary Fitzhugh accepted this feature", "project" {"kind" "project", "id" 1243524, "name" "CN Digital Solutions"}, "project_version" 8130, "performed_by" {"kind" "person", "id" 120053, "name" "Cary Fitzhugh", "initials" "CF"}, "changes" [{"kind" "story", "change_type" "update",
                                                                                                                                                                                                                                                                                  "id" 107923330,
                                                                                                                                                                                                                                                                                  "original_values" {"current_state" "delivered", "accepted_at" nil, "updated_at" 1447258579000, "before_id" 98744630, "after_id" 107741682},
@@ -99,12 +36,27 @@
                            "highlight" "edited",
                            "guid" "1243524_8125",
                            "occurred_at" 1447258104000})
-  (handle-story-change-event accepted-chore)
   )
+
 (defn handle-accepted-stories
   [accepted-story-changes event]
-  (println "Accepted stories: " (pr-str accepted-story-changes))
-  )
+  (let [story-ids (map #(get % "id") accepted-story-changes)
+        stories (map pivotal/get-story story-ids)
+        labels  (flatten (filter identity (map :labels stories)))
+        label-names (flatten (filter identity (map :name labels)))
+        environments (set (map #(get config/environment-labels %) label-names))
+        ]
+      (println "Environments affected: " environments)
+      (println "Accepted stories: " (pr-str accepted-story-changes))
+      (doseq [environment environments]
+        (if (some #(= environment %) (map :stag (vals config/application-repository-map)))
+          (let [application (get config/env-application-map environment)
+                commit-diff (github/get-commits-on-staging-not-prod application)
+                pivotal-task-ids (pivotal/pivotal-stories-in-commit-range commit-diff)
+                pivotal-stories (map pivotal/get-story pivotal-task-ids)]
+            (hipchat/report-staging-state application pivotal-stories))))
+
+    ))
 
 (defn handle-finished-stories
   [finished-story-changes event]
@@ -132,7 +84,7 @@
   {:status "ok"}
   ))
 
-(deflambdafn phoenixbot.pivotal.OnStoryChange
+(deflambdafn phoenixbot.handlers.pivotal.OnStoryChange
     [in out ctx]
       (let [event (json/read (io/reader in))
                     res (handle-story-change-event event)]
