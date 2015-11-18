@@ -8,6 +8,8 @@
 
 (comment
   (report-deployment "sindicapi-publish" "sindicati-publish-stag" "v1.2.3" [103936498])
+  (report-staging-state "sindicati-service" (map pivotal/get-story [103936498]))
+  (report-staging-state-msg "sindicati-service" (map pivotal/get-story [103936498]))
   )
 (def hipchat-host "https://api.hipchat.com")
 
@@ -48,24 +50,27 @@
     (let [accepted (filter #(= "accepted" (:current_state %)) stories)
           not-accepted (remove #(= "accepted" (:curent_state %)) stories)
           total (count stories)]
-
       (str "<b>" app "</b><br/>"
            (count accepted) " / " total " Accepted"
            "<br/>"
-           "<b> Awaiting Acceptance </b></br>"
-            (str ": <ul> "
-              (clojure.string/join
-                (map (fn [story]
-                    (str "<li><a href='" (:url story) "'>"
-                         (:name story) "</a></li>"))) not-accepted)
-            "</ul>")
-           "<b> Accepted </b></br>"
-            (str ": <ul> "
-              (clojure.string/join
-                (map (fn [story]
-                    (str "<li><a href='" (:url story) "'>"
-                         (:name story) "</a></li>"))) accepted)
-            "</ul>"))))
+           (if (not (empty? not-accepted))
+             (str
+               "<b> Awaiting Acceptance: </b></br>"
+               "<ul> "
+                  (clojure.string/join
+                    (map (fn [story]
+                        (str "<li><a href='" (:url story) "'>"
+                             (:name story) "</a></li>")) not-accepted))
+               "</ul>"))
+           (if (not (empty? accepted))
+             (str
+               "<b> Accepted: </b></br>"
+               "<ul> "
+                  (clojure.string/join
+                    (map (fn [story]
+                        (str "<li><a href='" (:url story) "'>"
+                             (:name story) "</a></li>")) accepted))
+                "</ul>")))))
 
 (defn report-staging-state
   [application stories]

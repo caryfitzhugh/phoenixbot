@@ -36,6 +36,8 @@
                            "highlight" "edited",
                            "guid" "1243524_8125",
                            "occurred_at" 1447258104000})
+  (def application "sindicati-publish")
+  (def environment "sindicati-p-stag")
   )
 
 (defn handle-accepted-stories
