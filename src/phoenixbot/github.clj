@@ -49,7 +49,8 @@
     (if repo-map
       (let [
              commits (get-commits org-name repo-name branch-name 500)
-
+             (println "Commits: " (pr-str commits))
+             (println "Commits: " (count commits))
              ;; Now find the currently deployed commit's index
              deployed-commit-index (index-of-release release-version commits)
 
